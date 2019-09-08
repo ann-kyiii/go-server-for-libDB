@@ -1,0 +1,5 @@
+curl localhost:1313
+curl localhost:1313/api/v1/groups/1/users
+curl localhost:1313/api/v1/groups/1/users?gender=man
+curl 'localhost:1313/api/v1/groups/1/users?gender=woman&pretty'
+curl 'localhost:1313/api/v1/groups/invalid/users?gender=woman&pretty'
