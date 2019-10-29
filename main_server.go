@@ -1,20 +1,21 @@
 package main
 
 import (
-	"net/http"
+	"os"
 	"strconv"
-
+	"log"
+	
+	"net/http"
     "github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/pkg/errors"
+
+	"context"
+	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
 )
 
-type User struct {
-	ID      int    `json:"id"`
-	GroupID int    `json:"group_id"`
-	Name    string `json:"name"`
-	Gender  string `json:"gender"`
-}
+
 
 func main() {
 	e := echo.New()
@@ -29,28 +30,51 @@ func main() {
 
 func initRouting(e *echo.Echo) {
 	e.GET("/", hello)
-	e.GET("/api/v1/groups/:group_id/users", getUsers)
+	e.GET("/api/v1/bookId/:id", getBookWithID)
+}
+
+func ConnectDB() (*firestore.Client, context.Context)  {
+	projectID := os.Getenv("LIBAPP_PROJECT_ID") // Sets your Google Cloud Platform project ID.
+	log.Printf("DB: %s\n", projectID)
+	ctx := context.Background() // Get a Firestore client.
+	client, err := firestore.NewClient(ctx, projectID)
+	if err != nil {
+		panic(err)
+		// log.Fatalf("Failed to create client: %v", err)
+	}
+
+	return client, ctx
 }
 
 func hello(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"hello": "world"})
 }
 
-func getUsers(c echo.Context) error {
-	groupIDStr := c.Param("group_id")
-	groupID, err := strconv.Atoi(groupIDStr)
+func getBookWithID(c echo.Context) error {
+	id := c.Param("id")
+
+	bookId, err := strconv.Atoi(id)
 	if err != nil {
-		return errors.Wrapf(err, "errors when group id convert to int: %s", groupIDStr)
+		return errors.Wrapf(err, "errors when book id convert to int: %s", bookId)
 	}
-	gender := c.QueryParam("gender")
-	users := []*User{}
-	if gender == "" || gender == "man" {
-		users = append(users, &User{ID: 1, GroupID: groupID, Name: "Taro", Gender: "man"})
-		users = append(users, &User{ID: 2, GroupID: groupID, Name: "Jiro", Gender: "man"})
+	
+	client, ctx := ConnectDB()
+	defer client.Close() // Close client when done.
+	collection := os.Getenv("LIBAPP_COLLECTION")
+	col := client.Collection(collection)
+	iter := col.Where("id", "==", bookId).Documents(ctx)
+	var book Book_FireStore
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("【Error】", err)
+			return errors.Wrapf(err, "errors when getting bookInfo from DB")
+		}
+		doc.DataTo(&book)
+		log.Printf("Book: %#v\n", book)
 	}
-	if gender == "" || gender == "woman" {
-		users = append(users, &User{ID: 3, GroupID: groupID, Name: "Hanako", Gender: "woman"})
-		users = append(users, &User{ID: 4, GroupID: groupID, Name: "Yoshiko", Gender: "woman"})
-	}
-	return c.JSON(http.StatusOK, users)
+	return c.JSON(http.StatusOK, book)
 }
