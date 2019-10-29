@@ -13,6 +13,7 @@ import (
 )
 
 type Book struct {
+	Id			int64	 `csv:"id"`
 	BookName   	string   `csv:"bookName"`
 	Genre      	string   `csv:"genre"`
 	SubGenre   	string   `csv:"subGenre"`
@@ -26,24 +27,8 @@ type Book struct {
 	LocateAt4F  bool     `csv:"locateAt4F"`
 	WithDisc    string   `csv:"withDisc"`
 	Other    	string   `csv:"other"`
+	Location   	string   `csv:"location"`
 }
-type Book_FireData struct {
-	BookName   	string   `firestore:"bookName,omitempty"`
-	Genre      	string   `firestore:"genre,omitempty"`
-	SubGenre   	string   `firestore:"subGenre,omitempty"`
-	ISBN    	string   `firestore:"ISBN,omitempty"`
-	Find 		int64    `firestore:"find,omitempty"`
-	Sum 		int64    `firestore:"sum,omitempty"`
-	Author    	string   `firestore:"author,omitempty"`
-	Publisher   string   `firestore:"publisher,omitempty"`
-	Pubdate		string   `firestore:"pubdate,omitempty"`
-	Exist 		string   `firestore:"exist,omitempty"`
-	LocateAt4F  bool     `firestore:"locateAt4F,omitempty"`
-	WithDisc    string   `firestore:"withDisc,omitempty"`
-	Other    	string   `firestore:"other,omitempty"`
-	Borrower	interface{} `firestore:"borrower,omitempty"`
-}
-
 
 func main() {
     file, err := os.OpenFile("../nagaoBookList_format.csv", os.O_RDONLY, os.ModePerm)
@@ -60,7 +45,8 @@ func main() {
 	
     book_fires := []*Book_FireData{}
     for _, book := range books {
-		var fire *Book_FireData = new(Book_FireData)
+		var fire *Book_FireStore = new(Book_FireData)
+		fire.Id = book.Id
 		fire.BookName = book.BookName
 		fire.Genre = book.Genre
 		fire.SubGenre = book.SubGenre
@@ -75,11 +61,13 @@ func main() {
 		fire.WithDisc = book.WithDisc
 		fire.Other = book.Other
 		fire.Borrower = []string{}
+		fire.Location = "unidentified"
 		book_fires = append(book_fires, fire)
         // fmt.Println(book)
     }
 
-	projectID := "nagaolab-library-app" // Sets your Google Cloud Platform project ID.
+	projectID := os.Getenv("LIBAPP_PROJECT_ID") // Sets your Google Cloud Platform project ID.
+	collection := os.Getenv("LIBAPP_COLLECTION")
 	// Get a Firestore client.
 	ctx := context.Background()
 	client, err := firestore.NewClient(ctx, projectID)
@@ -88,7 +76,7 @@ func main() {
 	}
 	defer client.Close() // Close client when done.
 
-	col := client.Collection("nagao_books")
+	col := client.Collection(collection)
 	fmt.Println("write")
 	for i := range book_fires {
 		fmt.Println(i, book_fires[i])
@@ -101,7 +89,7 @@ func main() {
 		// }
 	}
 	fmt.Println("read")
-	iter := client.Collection("nagao_books").Documents(ctx)
+	iter := client.Collection(collection).Documents(ctx)
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
