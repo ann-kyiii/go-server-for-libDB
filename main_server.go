@@ -10,8 +10,6 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/pkg/errors"
 
-	"context"
-	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
 )
 
@@ -22,7 +20,9 @@ func main() {
 
     e.Use(middleware.Logger())
     e.Use(middleware.Recover())
-	
+	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+		log.Printf("Request: %v\n", string(reqBody))
+	}))
 	initRouting(e)
 
 	e.Logger.Fatal(e.Start(":1313"))
@@ -31,24 +31,14 @@ func main() {
 func initRouting(e *echo.Echo) {
 	e.GET("/", hello)
 	e.GET("/api/v1/bookId/:id", getBookWithID)
+	e.POST("/api/v1/search", searchBooks)
 }
 
-func ConnectDB() (*firestore.Client, context.Context)  {
-	projectID := os.Getenv("LIBAPP_PROJECT_ID") // Sets your Google Cloud Platform project ID.
-	log.Printf("DB: %s\n", projectID)
-	ctx := context.Background() // Get a Firestore client.
-	client, err := firestore.NewClient(ctx, projectID)
-	if err != nil {
-		panic(err)
-		// log.Fatalf("Failed to create client: %v", err)
-	}
-
-	return client, ctx
-}
 
 func hello(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"hello": "world"})
 }
+
 
 func getBookWithID(c echo.Context) error {
 	id := c.Param("id")
@@ -63,7 +53,7 @@ func getBookWithID(c echo.Context) error {
 	collection := os.Getenv("LIBAPP_COLLECTION")
 	col := client.Collection(collection)
 	iter := col.Where("id", "==", bookId).Documents(ctx)
-	var book Book_FireStore
+	var book BookFireStore
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
@@ -77,4 +67,65 @@ func getBookWithID(c echo.Context) error {
 		log.Printf("Book: %#v\n", book)
 	}
 	return c.JSON(http.StatusOK, book)
+}
+
+
+func searchBooks(c echo.Context) error {
+	m := echo.Map{}
+	if err := c.Bind(&m); err != nil {
+		return err
+	}
+	keywords := m["keywords"].([]interface{})
+	t_offset := m["offset"].(string)
+	t_limit := m["limit"].(string)
+	offset, err := strconv.Atoi(t_offset)
+	if err != nil {
+		log.Printf("【Error】", err)
+		panic(err)
+	}
+	limit, err2 := strconv.Atoi(t_limit)
+	if err2 != nil {
+		log.Printf("【Error】", err)
+		panic(err)
+	}
+
+	// get DB data
+	client, ctx := ConnectDB()
+	defer client.Close()
+	collection := os.Getenv("LIBAPP_COLLECTION")
+
+	var bookvalues BookValues
+	iter := client.Collection(collection).Where("exist", "==", "〇").Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("【Error】", err)
+			panic(err)
+		}
+		var book BookValue
+		doc.DataTo(&book.Book)
+		bookvalues = append(bookvalues, book)
+	}
+	iter = client.Collection(collection).Where("exist", "==", "一部発見").Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("【Error】", err)
+			panic(err)
+		}
+		var book BookValue
+		doc.DataTo(&book.Book)
+		bookvalues = append(bookvalues, book)
+	}
+
+	// search
+	searchAttribute := []string{"publisher", "author", "bookName", "pubdate", "ISBN"}
+	data := searchOR(bookvalues, keywords, searchAttribute, offset, limit)
+	return c.JSON(http.StatusOK, data)
 }
