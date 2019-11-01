@@ -44,7 +44,7 @@ func main() {
 				log.Fatalf("Failed to iterate: %v", err)
 			}
 			
-			var book Book_FireStore
+			var book BookFireStore
 			doc.DataTo(&book)
 			fmt.Printf("Book: %#v\n", book)
 		}

@@ -1,6 +1,6 @@
 package main
 
-type Book_FireStore struct {
+type BookFireStore struct {
 	Id			int64	 `firestore:"id"`
 	BookName   	string   `firestore:"bookName,omitempty"`
 	Genre      	string   `firestore:"genre,omitempty"`
