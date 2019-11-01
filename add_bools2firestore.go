@@ -43,9 +43,9 @@ func main() {
 	}
 	fmt.Println(len(books))
 	
-    book_fires := []*Book_FireData{}
+    book_fires := []*BookFireStore{}
     for _, book := range books {
-		var fire *Book_FireStore = new(Book_FireData)
+		var fire *BookFireStore = new(BookFireStore)
 		fire.Id = book.Id
 		fire.BookName = book.BookName
 		fire.Genre = book.Genre
