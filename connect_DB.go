@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"log"
 	
 	"context"
 	"cloud.google.com/go/firestore"
