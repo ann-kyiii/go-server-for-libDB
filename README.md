@@ -4,14 +4,14 @@
 `golang，echo` で作られています．
 
 ## サーバの起動方法
-サーバは，以下のコマンドでクイック起動できます．
+サーバは，以下のコマンドでクイック起動できます( `...` はリンクする他の `.go` プログラム)．
 ```
-go run main_server.go
+go run main_server.go ... 
 ```
 
-また，ビルドとサーバのバックグラウンド実行は以下のコマンドで行います．
+また，ビルドとサーバのバックグラウンド実行は以下のコマンドで行います( `...` はリンクする他の `.go` プログラム)．
 ```
-go build main_server.go
+go build main_server.go ...
 ./main_server.go &
 ```
 
@@ -21,10 +21,10 @@ ps aux | grep main_server
 kill [PID(.main_serverプロセスの2項目の数字))]
 ```
 
-###  サーバへのアクセス例
-APIサーバへのアクセス方法は，`test_command` を例とします．
+`master` ブランチは，公開サーバ用のブランチです．
+公開サーバでは以下のスクリプトを使用して，サーバの立ち上げと停止をしてください．
+- `exec_server_background.sh` を実行して，サーバを常時バックグラウンド実行
+- `kill_background_server.sh` を実行して，バックグラウンドしていたサーバを停止
 
-例：
-```
-curl [サーバのグローバルIPアドレス]:1313 
-```
+###  サーバへのアクセス例
+APIサーバへのアクセス方法は，`test_request.http` を例とします( `localhost` は適宜変えてください)．
