@@ -1,0 +1,1 @@
+ps x | grep main_server | grep ./m | cut -f 1 -d " " | xargs kill -KILL

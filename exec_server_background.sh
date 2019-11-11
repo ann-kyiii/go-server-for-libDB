@@ -1,0 +1,1 @@
+nohup ./main_server> out.log 2> err.log < /dev/null &
