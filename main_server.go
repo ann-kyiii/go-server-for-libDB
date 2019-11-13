@@ -18,6 +18,7 @@ import (
 func main() {
 	e := echo.New()
 
+    e.Use(middleware.CORS())
     e.Use(middleware.Logger())
     e.Use(middleware.Recover())
 	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
