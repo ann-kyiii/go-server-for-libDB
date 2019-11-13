@@ -32,6 +32,9 @@ func searchOR(bookvalues BookValues, keywords []interface{}, searchAttribute []s
 				if book.Book[att] == nil {
 					continue
 				}
+				if book.Book[att] == "Genre" || book.Book[att] == "SubGenre" {
+					continue
+				}
 				if strings.Index(book.Book[att].(string), word.(string)) != -1 {
 					bookvalues[i].value += (v+1)
 					break
