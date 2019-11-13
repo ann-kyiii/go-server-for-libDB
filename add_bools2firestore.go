@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"fmt"
+	"strconv"
 
     "os"
 	"github.com/gocarina/gocsv"
@@ -28,6 +29,7 @@ type Book struct {
 	WithDisc    string   `csv:"withDisc"`
 	Other    	string   `csv:"other"`
 	Location   	string   `csv:"location"`
+	ImgURL   	string   `csv:"img"`
 }
 
 func main() {
@@ -62,6 +64,7 @@ func main() {
 		fire.Other = book.Other
 		fire.Borrower = []string{}
 		fire.Location = "unidentified"
+		fire.ImgURL = book.ImgURL
 		book_fires = append(book_fires, fire)
         // fmt.Println(book)
     }
@@ -80,11 +83,11 @@ func main() {
 	fmt.Println("write")
 	for i := range book_fires {
 		fmt.Println(i, book_fires[i])
-		_, _, err = col.Add(ctx, book_fires[i])
+		_, err = col.Doc(strconv.Itoa(i)).Set(ctx, book_fires[i])
 		if err != nil {
 			log.Fatalf("Failed adding alovelace: %v", err)
 		}
-		// if i > 0{
+		// if i > 5{
 		// 	break 
 		// }
 	}
