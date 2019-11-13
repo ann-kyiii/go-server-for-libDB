@@ -2,19 +2,20 @@ package main
 
 type BookFireStore struct {
 	Id			int64	 `firestore:"id"`
-	BookName   	string   `firestore:"bookName,omitempty"`
-	Genre      	string   `firestore:"genre,omitempty"`
-	SubGenre   	string   `firestore:"subGenre,omitempty"`
-	ISBN    	string   `firestore:"ISBN,omitempty"`
-	Find 		int64    `firestore:"find,omitempty"`
-	Sum 		int64    `firestore:"sum,omitempty"`
-	Author    	string   `firestore:"author,omitempty"`
-	Publisher   string   `firestore:"publisher,omitempty"`
-	Pubdate		string   `firestore:"pubdate,omitempty"`
-	Exist 		string   `firestore:"exist,omitempty"`
-	LocateAt4F  bool     `firestore:"locateAt4F,omitempty"`
-	WithDisc    string   `firestore:"withDisc,omitempty"`
-	Other    	string   `firestore:"other,omitempty"`
-	Borrower	interface{} `firestore:"borrower,omitempty"`
-	Location	string 	 `firestore:"location,omitempty"`
+	BookName   	string   `firestore:"bookName"`
+	Genre      	string   `firestore:"genre"`
+	SubGenre   	string   `firestore:"subGenre"`
+	ISBN    	string   `firestore:"ISBN"`
+	Find 		int64    `firestore:"find"`
+	Sum 		int64    `firestore:"sum"`
+	Author    	string   `firestore:"author"`
+	Publisher   string   `firestore:"publisher"`
+	Pubdate		string   `firestore:"pubdate"`
+	Exist 		string   `firestore:"exist"`
+	LocateAt4F  bool     `firestore:"locateAt4F"`
+	WithDisc    string   `firestore:"withDisc"`
+	Other    	string   `firestore:"other"`
+	Borrower	interface{} `firestore:"borrower"`
+	Location	string 	 `firestore:"location"`
+	ImgURL		string	 `firestore:"imgURL"`	
 }

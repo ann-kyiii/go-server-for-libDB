@@ -11,12 +11,18 @@ import (
 	"github.com/pkg/errors"
 
 	"google.golang.org/api/iterator"
+    "github.com/ipfans/echo-session"
 )
 
 
 
 func main() {
 	e := echo.New()
+
+    store := session.NewCookieStore([]byte("secret-key"))
+    store.MaxAge(2)
+	e.Use(session.Sessions("ESESSION", store))
+	
 
     e.Use(middleware.CORS())
     e.Use(middleware.Logger())
@@ -30,20 +36,39 @@ func main() {
 }
 
 func initRouting(e *echo.Echo) {
-	e.GET("/", hello)
-	e.GET("/api/v1/bookId/:id", getBookWithID)
-	e.POST("/api/v1/search", searchBooks)
-	e.POST("/api/v1/searchGenre", searchGenre)
-	e.POST("/api/v1/searchSubGenre", searchSubGenre)
+	e.GET("/", hello, ContinuousAccessFilter())
+	e.GET("/api/v1/bookId/:id", getBookWithID, ContinuousAccessFilter())
+	e.POST("/api/v1/search", searchBooks, ContinuousAccessFilter())
+	e.POST("/api/v1/searchGenre", searchGenre, ContinuousAccessFilter())
+	e.POST("/api/v1/searchSubGenre", searchSubGenre, ContinuousAccessFilter())
 }
 
+func ContinuousAccessFilter() echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+			session := session.Default(c)
+			access := session.Get("AccessServer")
+			if access != nil && access == "completed" {
+				return echo.ErrUnauthorized
+			}
+			
+			return next(c)
+        }
+    }
+}
 
 func hello(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	return c.JSON(http.StatusOK, map[string]string{"hello": "world"})
 }
 
 
 func getBookWithID(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	id := c.Param("id")
 
 	bookId, err := strconv.Atoi(id)
@@ -74,6 +99,9 @@ func getBookWithID(c echo.Context) error {
 
 
 func searchBooks(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	m := echo.Map{}
 	if err := c.Bind(&m); err != nil {
 		return err
@@ -134,6 +162,9 @@ func searchBooks(c echo.Context) error {
 }
 
 func searchGenre(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	m := echo.Map{}
 	if err := c.Bind(&m); err != nil {
 		return err
@@ -211,6 +242,9 @@ func searchGenre(c echo.Context) error {
 }
 
 func searchSubGenre(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	m := echo.Map{}
 	if err := c.Bind(&m); err != nil {
 		return err
