@@ -51,7 +51,7 @@ func searchOR(bookvalues BookValues, keywords []interface{}, searchAttribute []s
 		empty_list := []interface{}{}
 		data := map[string]interface{}{
 			"books":empty_list,
-			"max_books":len(books),
+			"max_books":0,
 		}
 		return data
 	} else {

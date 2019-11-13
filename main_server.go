@@ -191,6 +191,7 @@ func searchGenre(c echo.Context) error {
 		empty_list := []interface{}{}
 		data := map[string]interface{}{
 			"books":empty_list,
+			"max_books":0,
 		}
 		return c.JSON(http.StatusOK, data)
 	} else {
@@ -203,6 +204,7 @@ func searchGenre(c echo.Context) error {
 		}
 		data := map[string]interface{}{
 			"books":books[first:last],
+			"max_books":len(books),
 		}
 		return c.JSON(http.StatusOK, data)
 	}
@@ -266,6 +268,7 @@ func searchSubGenre(c echo.Context) error {
 		empty_list := []interface{}{}
 		data := map[string]interface{}{
 			"books":empty_list,
+			"max_books":0,
 		}
 		return c.JSON(http.StatusOK, data)
 	} else {
@@ -278,6 +281,7 @@ func searchSubGenre(c echo.Context) error {
 		}
 		data := map[string]interface{}{
 			"books":books[first:last],
+			"max_books":len(books),
 		}
 		return c.JSON(http.StatusOK, data)
 	}
