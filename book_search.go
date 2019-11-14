@@ -32,6 +32,9 @@ func searchOR(bookvalues BookValues, keywords []interface{}, searchAttribute []s
 				if book.Book[att] == nil {
 					continue
 				}
+				if book.Book[att] == "Genre" || book.Book[att] == "SubGenre" {
+					continue
+				}
 				if strings.Index(book.Book[att].(string), word.(string)) != -1 {
 					bookvalues[i].value += (v+1)
 					break
@@ -51,6 +54,7 @@ func searchOR(bookvalues BookValues, keywords []interface{}, searchAttribute []s
 		empty_list := []interface{}{}
 		data := map[string]interface{}{
 			"books":empty_list,
+			"max_books":0,
 		}
 		return data
 	} else {
@@ -63,6 +67,7 @@ func searchOR(bookvalues BookValues, keywords []interface{}, searchAttribute []s
 		}
 		data := map[string]interface{}{
 			"books":books[first:last],
+			"max_books":len(books),
 		}
 		return data
 	}

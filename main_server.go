@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"google.golang.org/api/iterator"
+    "github.com/ipfans/echo-session"
 )
 
 
@@ -18,6 +19,11 @@ import (
 func main() {
 	e := echo.New()
 
+    store := session.NewCookieStore([]byte("secret-key"))
+    store.MaxAge(2)
+	e.Use(session.Sessions("ESESSION", store))
+	
+    e.Use(middleware.CORS())
     e.Use(middleware.Logger())
     e.Use(middleware.Recover())
 	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
@@ -29,13 +35,28 @@ func main() {
 }
 
 func initRouting(e *echo.Echo) {
-	e.GET("/", hello)
-	e.GET("/api/v1/bookId/:id", getBookWithID)
-	e.POST("/api/v1/search", searchBooks)
-	e.POST("/api/v1/searchGenre", searchGenre)
-	e.POST("/api/v1/searchSubGenre", searchSubGenre)
+	e.GET("/", hello, InternalIpFilter())
+	e.GET("/api/v1/bookId/:id", getBookWithID, InternalIpFilter())
+	e.POST("/api/v1/search", searchBooks, InternalIpFilter())
+	e.POST("/api/v1/searchGenre", searchGenre, InternalIpFilter())
+	e.POST("/api/v1/searchSubGenre", searchSubGenre, InternalIpFilter())
+	e.POST("/api/v1/borrow", borrowBook, InternalIpFilter())
+	e.POST("/api/v1/return", returnBook, InternalIpFilter())
 }
 
+func InternalIpFilter() echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+			session := session.Default(c)
+			access := session.Get("AccessServer")
+			if access != nil && access == "completed" {
+				return echo.ErrUnauthorized
+			}
+			
+			return next(c)
+        }
+    }
+}
 
 func hello(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"hello": "world"})
@@ -43,6 +64,9 @@ func hello(c echo.Context) error {
 
 
 func getBookWithID(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	id := c.Param("id")
 
 	bookId, err := strconv.Atoi(id)
@@ -73,6 +97,9 @@ func getBookWithID(c echo.Context) error {
 
 
 func searchBooks(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	m := echo.Map{}
 	if err := c.Bind(&m); err != nil {
 		return err
@@ -133,6 +160,9 @@ func searchBooks(c echo.Context) error {
 }
 
 func searchGenre(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	m := echo.Map{}
 	if err := c.Bind(&m); err != nil {
 		return err
@@ -190,6 +220,7 @@ func searchGenre(c echo.Context) error {
 		empty_list := []interface{}{}
 		data := map[string]interface{}{
 			"books":empty_list,
+			"max_books":0,
 		}
 		return c.JSON(http.StatusOK, data)
 	} else {
@@ -202,12 +233,16 @@ func searchGenre(c echo.Context) error {
 		}
 		data := map[string]interface{}{
 			"books":books[first:last],
+			"max_books":len(books),
 		}
 		return c.JSON(http.StatusOK, data)
 	}
 }
 
 func searchSubGenre(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	m := echo.Map{}
 	if err := c.Bind(&m); err != nil {
 		return err
@@ -265,6 +300,7 @@ func searchSubGenre(c echo.Context) error {
 		empty_list := []interface{}{}
 		data := map[string]interface{}{
 			"books":empty_list,
+			"max_books":0,
 		}
 		return c.JSON(http.StatusOK, data)
 	} else {
@@ -277,7 +313,143 @@ func searchSubGenre(c echo.Context) error {
 		}
 		data := map[string]interface{}{
 			"books":books[first:last],
+			"max_books":len(books),
 		}
 		return c.JSON(http.StatusOK, data)
 	}
+}
+
+func borrowBook(c echo.Context) error {
+	session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
+	m := echo.Map{}
+	if err := c.Bind(&m); err != nil {
+		return err
+	}
+	id := m["id"].(string)
+	name := m["name"].(string)
+	id, err := strconv.Atoi(id)
+	if err != nil {
+		log.Printf("【Error】", err)
+		panic(err)
+	}
+	doc.DataTo(&book)
+
+	// get DB data
+	client, ctx := ConnectDB()
+	defer client.Close()
+	data := borrow_book(ctx, client, id)
+
+	return c.JSON(http.StatusOK, data)
+}
+
+func returnBook(c echo.Context) error {
+	session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
+	m := echo.Map{}
+	if err := c.Bind(&m); err != nil {
+		return err
+	}
+	id := m["id"].(string)
+	name := m["name"].(string)
+	id, err := strconv.Atoi(id)
+	if err != nil {
+		log.Printf("【Error】", err)
+		panic(err)
+	}
+
+	// get DB data
+	client, ctx := ConnectDB()
+	defer client.Close()
+	data := return_book(ctx, client, id)
+
+	return c.JSON(http.StatusOK, data)
+}
+
+func borrow_book(ctx context.Context, client *firestore.Client, id int) error {
+	var sc = bufio.NewScanner(os.Stdin)
+	var name string
+	fmt.Printf("Please type Borrower Name > ")
+	if sc.Scan(){
+		name = sc.Text()
+	}
+	fmt.Println("BORROWER : " + name)
+	collection := os.Getenv("LIBAPP_COLLECTION")
+	var book_data []BookFireStore
+
+	doc := client.Collection(collection).Doc(strconv.Itoa(id))
+
+	docu, _ := doc.Get(ctx)
+	d := docu.Data()
+	borrower := d["borrower"].([]interface{})
+	// sum := d["sum"]
+	arr := make([]string, len(borrower))
+	for i, v := range borrower{
+		arr[i] = fmt.Sprint(v)
+	}
+	arr = append(arr, name)
+
+	_, err := doc.Set(ctx, map[string]interface{}{
+		"borrower": arr,
+	}, firestore.MergeAll)
+	if err != nil{
+		log.Printf("An error has occurred: %s", err)
+	}
+	var book BookFireStore
+	doc.DataTo(&book)
+	book_data = append(book_data, book)
+	data := map[string]interface{}{
+		"book":book_data
+	}
+	return data
+}
+
+func remove(strings []string, search string) []string {
+    result := []string{}
+    for _, v := range strings {
+        if v != search {
+            result = append(result, v)
+        }
+    }
+    return result
+}
+
+func return_book(ctx context.Context, client *firestore.Client, id int) error {
+	var sc = bufio.NewScanner(os.Stdin)
+	var name string
+	fmt.Printf("Please type Borrower Name > ")
+	if sc.Scan(){
+		name = sc.Text()
+	}	
+	fmt.Println("BORROWER : " + name)
+
+	collection := os.Getenv("LIBAPP_COLLECTION")
+	var book_data []BookFireStore
+	doc := client.Collection(collection).Doc(strconv.Itoa(id))
+
+	docu, _ := doc.Get(ctx)
+	d := docu.Data()
+	borrower := d["borrower"].([]interface{})
+	arr := make([]string, len(borrower))
+	for i, v := range borrower{
+		arr[i] = fmt.Sprint(v)
+	}
+	arr = remove(arr, name)
+	fmt.Println(arr)
+
+	_, err := doc.Set(ctx, map[string]interface{}{
+		"borrower": arr,
+	}, firestore.MergeAll)
+	if err != nil{
+		log.Printf("An error has occurred: %s", err)
+	}
+	var book BookFireStore
+	doc.DataTo(&book)
+	book_data = append(book_data, book)
+	data := map[string]interface{}{
+		"book":book_data
+	}
+	return data
 }
