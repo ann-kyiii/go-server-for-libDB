@@ -22,7 +22,6 @@ func main() {
     store := session.NewCookieStore([]byte("secret-key"))
     store.MaxAge(2)
 	e.Use(session.Sessions("ESESSION", store))
-	
     e.Use(middleware.CORS())
     e.Use(middleware.Logger())
     e.Use(middleware.Recover())
@@ -35,16 +34,16 @@ func main() {
 }
 
 func initRouting(e *echo.Echo) {
-	e.GET("/", hello, InternalIpFilter())
-	e.GET("/api/v1/bookId/:id", getBookWithID, InternalIpFilter())
-	e.POST("/api/v1/search", searchBooks, InternalIpFilter())
-	e.POST("/api/v1/searchGenre", searchGenre, InternalIpFilter())
-	e.POST("/api/v1/searchSubGenre", searchSubGenre, InternalIpFilter())
-	e.POST("/api/v1/borrow", borrowBook, InternalIpFilter())
-	e.POST("/api/v1/return", returnBook, InternalIpFilter())
+	e.GET("/", hello, ContinuousAccessFilter())
+	e.GET("/api/v1/bookId/:id", getBookWithID, ContinuousAccessFilter())
+	e.POST("/api/v1/search", searchBooks, ContinuousAccessFilter())
+	e.POST("/api/v1/searchGenre", searchGenre, ContinuousAccessFilter())
+	e.POST("/api/v1/searchSubGenre", searchSubGenre, ContinuousAccessFilter())
+	e.POST("/api/v1/borrow", borrowBook, ContinuousAccessFilter())
+	e.POST("/api/v1/return", returnBook, ContinuousAccessFilter())
 }
 
-func InternalIpFilter() echo.MiddlewareFunc {
+func ContinuousAccessFilter() echo.MiddlewareFunc {
     return func(next echo.HandlerFunc) echo.HandlerFunc {
         return func(c echo.Context) error {
 			session := session.Default(c)
@@ -59,6 +58,9 @@ func InternalIpFilter() echo.MiddlewareFunc {
 }
 
 func hello(c echo.Context) error {
+    session := session.Default(c)
+    session.Set("AccessServer", "completed")
+    session.Save()
 	return c.JSON(http.StatusOK, map[string]string{"hello": "world"})
 }
 
