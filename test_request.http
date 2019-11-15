@@ -36,3 +36,21 @@ content-type: application/json
     "offset": "0", 
     "limit" : "5" 
 }
+
+###
+POST http://localhost:1313/api/v1/borrow HTTP/1.1
+content-type: application/json
+
+{
+    "id": "0", 
+    "name": "TEST"
+}
+
+###
+POST http://localhost:1313/api/v1/return HTTP/1.1
+content-type: application/json
+
+{
+    "id": "0", 
+    "name": "TEST"
+}

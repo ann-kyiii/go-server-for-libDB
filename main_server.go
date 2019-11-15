@@ -4,6 +4,8 @@ import (
 	"os"
 	"strconv"
 	"log"
+	"fmt"
+	"context"
 	
 	"net/http"
     "github.com/labstack/echo"
@@ -11,7 +13,8 @@ import (
 	"github.com/pkg/errors"
 
 	"google.golang.org/api/iterator"
-    "github.com/ipfans/echo-session"
+	"github.com/ipfans/echo-session"
+	"cloud.google.com/go/firestore"
 )
 
 
@@ -329,19 +332,18 @@ func borrowBook(c echo.Context) error {
 	if err := c.Bind(&m); err != nil {
 		return err
 	}
-	id := m["id"].(string)
+	t_id := m["id"].(string)
 	name := m["name"].(string)
-	id, err := strconv.Atoi(id)
+	id, err := strconv.Atoi(t_id)
 	if err != nil {
 		log.Printf("【Error】", err)
 		panic(err)
 	}
-	doc.DataTo(&book)
 
 	// get DB data
 	client, ctx := ConnectDB()
 	defer client.Close()
-	data := borrow_book(ctx, client, id)
+	data := borrow_book(ctx, client, id, name)
 
 	return c.JSON(http.StatusOK, data)
 }
@@ -354,30 +356,23 @@ func returnBook(c echo.Context) error {
 	if err := c.Bind(&m); err != nil {
 		return err
 	}
-	id := m["id"].(string)
+	t_id := m["id"].(string)
 	name := m["name"].(string)
-	id, err := strconv.Atoi(id)
+	id, err := strconv.Atoi(t_id)
 	if err != nil {
 		log.Printf("【Error】", err)
 		panic(err)
 	}
-
+	
 	// get DB data
 	client, ctx := ConnectDB()
 	defer client.Close()
-	data := return_book(ctx, client, id)
+	data := return_book(ctx, client, id, name)
 
 	return c.JSON(http.StatusOK, data)
 }
 
-func borrow_book(ctx context.Context, client *firestore.Client, id int) error {
-	var sc = bufio.NewScanner(os.Stdin)
-	var name string
-	fmt.Printf("Please type Borrower Name > ")
-	if sc.Scan(){
-		name = sc.Text()
-	}
-	fmt.Println("BORROWER : " + name)
+func borrow_book(ctx context.Context, client *firestore.Client, id int, name string) map[string]interface{}{
 	collection := os.Getenv("LIBAPP_COLLECTION")
 	var book_data []BookFireStore
 
@@ -399,11 +394,21 @@ func borrow_book(ctx context.Context, client *firestore.Client, id int) error {
 	if err != nil{
 		log.Printf("An error has occurred: %s", err)
 	}
-	var book BookFireStore
-	doc.DataTo(&book)
-	book_data = append(book_data, book)
+	iter := client.Collection(collection).Where("id", "==", id).Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Failed to iterate: %v", err)
+		}
+		var book BookFireStore
+		doc.DataTo(&book)
+		book_data = append(book_data, book)
+	}
 	data := map[string]interface{}{
-		"book":book_data
+		"book":book_data,
 	}
 	return data
 }
@@ -418,15 +423,7 @@ func remove(strings []string, search string) []string {
     return result
 }
 
-func return_book(ctx context.Context, client *firestore.Client, id int) error {
-	var sc = bufio.NewScanner(os.Stdin)
-	var name string
-	fmt.Printf("Please type Borrower Name > ")
-	if sc.Scan(){
-		name = sc.Text()
-	}	
-	fmt.Println("BORROWER : " + name)
-
+func return_book(ctx context.Context, client *firestore.Client, id int, name string) map[string]interface{}{
 	collection := os.Getenv("LIBAPP_COLLECTION")
 	var book_data []BookFireStore
 	doc := client.Collection(collection).Doc(strconv.Itoa(id))
@@ -439,7 +436,6 @@ func return_book(ctx context.Context, client *firestore.Client, id int) error {
 		arr[i] = fmt.Sprint(v)
 	}
 	arr = remove(arr, name)
-	fmt.Println(arr)
 
 	_, err := doc.Set(ctx, map[string]interface{}{
 		"borrower": arr,
@@ -447,11 +443,21 @@ func return_book(ctx context.Context, client *firestore.Client, id int) error {
 	if err != nil{
 		log.Printf("An error has occurred: %s", err)
 	}
-	var book BookFireStore
-	doc.DataTo(&book)
-	book_data = append(book_data, book)
+	iter := client.Collection(collection).Where("id", "==", id).Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Failed to iterate: %v", err)
+		}
+		var book BookFireStore
+		doc.DataTo(&book)
+		book_data = append(book_data, book)
+	}
 	data := map[string]interface{}{
-		"book":book_data
+		"book":book_data,
 	}
 	return data
 }
