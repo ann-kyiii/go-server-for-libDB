@@ -84,7 +84,7 @@ func getBookWithID(c echo.Context) error {
 	collection := os.Getenv("LIBAPP_COLLECTION")
 	col := client.Collection(collection)
 	iter := col.Where("id", "==", bookId).Documents(ctx)
-	var book BookFireStore
+	var book map[string]interface {}
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
@@ -191,7 +191,7 @@ func searchGenre(c echo.Context) error {
 	defer client.Close()
 	collection := os.Getenv("LIBAPP_COLLECTION")
 
-	var books []BookFireStore
+	var books []map[string]interface {}
 	iter := client.Collection(collection).Where("exist", "==", "〇").Where("genre", "==", genre).Documents(ctx)
 	for {
 		doc, err := iter.Next()
@@ -202,7 +202,7 @@ func searchGenre(c echo.Context) error {
 			log.Printf("【Error】", err)
 			panic(err)
 		}
-		var book BookFireStore
+		var book map[string]interface {}
 		doc.DataTo(&book)
 		books = append(books, book)
 	}
@@ -216,7 +216,7 @@ func searchGenre(c echo.Context) error {
 			log.Printf("【Error】", err)
 			panic(err)
 		}
-		var book BookFireStore
+		var book map[string]interface {}
 		doc.DataTo(&book)
 		books = append(books, book)
 	}
@@ -271,7 +271,7 @@ func searchSubGenre(c echo.Context) error {
 	defer client.Close()
 	collection := os.Getenv("LIBAPP_COLLECTION")
 
-	var books []BookFireStore
+	var books []map[string]interface {}
 	iter := client.Collection(collection).Where("exist", "==", "〇").Where("subGenre", "==", subGenre).Documents(ctx)
 	for {
 		doc, err := iter.Next()
@@ -282,7 +282,7 @@ func searchSubGenre(c echo.Context) error {
 			log.Printf("【Error】", err)
 			panic(err)
 		}
-		var book BookFireStore
+		var book map[string]interface {}
 		doc.DataTo(&book)
 		books = append(books, book)
 	}
@@ -296,7 +296,7 @@ func searchSubGenre(c echo.Context) error {
 			log.Printf("【Error】", err)
 			panic(err)
 		}
-		var book BookFireStore
+		var book map[string]interface {}
 		doc.DataTo(&book)
 		books = append(books, book)
 	}
@@ -374,7 +374,7 @@ func returnBook(c echo.Context) error {
 
 func borrow_book(ctx context.Context, client *firestore.Client, id int, name string) map[string]interface{}{
 	collection := os.Getenv("LIBAPP_COLLECTION")
-	var book_data []BookFireStore
+	var book_data []map[string]interface {}
 
 	doc := client.Collection(collection).Doc(strconv.Itoa(id))
 
@@ -403,7 +403,7 @@ func borrow_book(ctx context.Context, client *firestore.Client, id int, name str
 		if err != nil {
 			log.Fatalf("Failed to iterate: %v", err)
 		}
-		var book BookFireStore
+		var book map[string]interface {}
 		doc.DataTo(&book)
 		book_data = append(book_data, book)
 	}
@@ -425,7 +425,7 @@ func remove(strings []string, search string) []string {
 
 func return_book(ctx context.Context, client *firestore.Client, id int, name string) map[string]interface{}{
 	collection := os.Getenv("LIBAPP_COLLECTION")
-	var book_data []BookFireStore
+	var book_data []map[string]interface {}
 	doc := client.Collection(collection).Doc(strconv.Itoa(id))
 
 	docu, _ := doc.Get(ctx)
@@ -452,7 +452,7 @@ func return_book(ctx context.Context, client *firestore.Client, id int, name str
 		if err != nil {
 			log.Fatalf("Failed to iterate: %v", err)
 		}
-		var book BookFireStore
+		var book map[string]interface {}
 		doc.DataTo(&book)
 		book_data = append(book_data, book)
 	}

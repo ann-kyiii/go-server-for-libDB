@@ -1,3 +1,6 @@
 .vscode
 *.log
 *.out
+
+go.mod
+go.sum

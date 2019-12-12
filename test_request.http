@@ -1,7 +1,9 @@
-curl localhost:1313
+GET  http://localhost:1313 HTTP/1.1
+
+###
 
 // API /api/v1/bookId/:bookId GET
-curl localhost:1313/api/v1/bookId/1
+GET  http://localhost:1313/api/v1/bookId/1 HTTP/1.1
 
 
 // API /api/v1/search POST
