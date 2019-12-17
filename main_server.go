@@ -374,14 +374,13 @@ func returnBook(c echo.Context) error {
 
 func borrow_book(ctx context.Context, client *firestore.Client, id int, name string) map[string]interface{}{
 	collection := os.Getenv("LIBAPP_COLLECTION")
-	var book_data []map[string]interface {}
+	var book map[string]interface {}
 
 	doc := client.Collection(collection).Doc(strconv.Itoa(id))
 
 	docu, _ := doc.Get(ctx)
 	d := docu.Data()
 	borrower := d["borrower"].([]interface{})
-	// sum := d["sum"]
 	arr := make([]string, len(borrower))
 	for i, v := range borrower{
 		arr[i] = fmt.Sprint(v)
@@ -403,14 +402,9 @@ func borrow_book(ctx context.Context, client *firestore.Client, id int, name str
 		if err != nil {
 			log.Fatalf("Failed to iterate: %v", err)
 		}
-		var book map[string]interface {}
 		doc.DataTo(&book)
-		book_data = append(book_data, book)
 	}
-	data := map[string]interface{}{
-		"book":book_data,
-	}
-	return data
+	return book
 }
 
 func remove(strings []string, search string) []string {
@@ -425,7 +419,7 @@ func remove(strings []string, search string) []string {
 
 func return_book(ctx context.Context, client *firestore.Client, id int, name string) map[string]interface{}{
 	collection := os.Getenv("LIBAPP_COLLECTION")
-	var book_data []map[string]interface {}
+	var book map[string]interface {}
 	doc := client.Collection(collection).Doc(strconv.Itoa(id))
 
 	docu, _ := doc.Get(ctx)
@@ -452,12 +446,7 @@ func return_book(ctx context.Context, client *firestore.Client, id int, name str
 		if err != nil {
 			log.Fatalf("Failed to iterate: %v", err)
 		}
-		var book map[string]interface {}
 		doc.DataTo(&book)
-		book_data = append(book_data, book)
 	}
-	data := map[string]interface{}{
-		"book":book_data,
-	}
-	return data
+	return book
 }
